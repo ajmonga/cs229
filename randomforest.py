@@ -11,6 +11,8 @@ from sklearn.model_selection import cross_validate
 from sklearn.metrics import recall_score
 from sklearn.decomposition import PCA
 from sklearn.metrics import classification_report
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.datasets import make_classification
 
 class_names = ['bust', 'nfl-ready']
 y_true_lables = 0;
@@ -42,9 +44,9 @@ def plot_confusion_matrix(cm, classes,
     fmt = '.2f' if normalize else 'd'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-            plt.text(j, i, format(cm[i, j], fmt),fontsize = 30,
+            plt.text(j, i, format(cm[i, j], fmt),
                      horizontalalignment="center",
-                     color="white" if cm[i, j] > thresh else "black")
+                     color="white" if cm[i, j] > thresh else "red")
     
     plt.tight_layout()
     plt.ylabel('True label')
@@ -55,10 +57,10 @@ year = 1998;
 
 total_size = 0;
 for iter in range (0, 18):
-    #print iter
+    print iter
     train_file = "QB_stats_numerical_data_%d.csv" % (year + iter);
     test_file = "QB_stats_numerical_data_%d_test.csv" % (year + iter);
-    #print(train_file);
+    print(train_file);
     #print(class_names)
     #Read in all the data
     with open(train_file, 'rb') as f:
@@ -101,7 +103,7 @@ for iter in range (0, 18):
     #prepare the labels, pick the last column
     y_test = qb_stats_test[:, n-1]
     #print(y_test)
-    #print(y_test.shape)
+    print(y_test.shape)
 
     #convert training data into np array to feed into sklearn
     y_train = np.asarray(y_train)
@@ -113,35 +115,23 @@ for iter in range (0, 18):
 
     #print(x_array)
 
-    #Apply SVM
+    #Apply Random forest
 
-    for kernel in ('poly', 'rbf', 'linear'):
-    #for kernel in ('linear'):
-        clf = SVC(kernel=kernel, gamma=10, degree=2, C=5)
-        clf.fit(x_train, y_train)
-        #scoring = ['precision_macro', 'recall_macro']
-        #scores = cross_validate(clf, x_train, y_train, scoring=scoring,
-        #cv=5, return_train_score=False)
-                                #score = cross_validation.cross_val_score(clf, x_train,y_train, cv=5, n_jobs=1).mean()
-                                #print(scores)
-        #print(kernel)
-        #clf.score(x_test, y_test)
-        y_pred = clf.predict(x_test)
-        #print(y_pred)
-        if (iter == 0 and kernel == 'linear'):
-            #print kernel
+    clf = RandomForestClassifier(max_depth=10, random_state=0, n_estimators=15)
+    clf.fit(x_train, y_train)
+    y_pred = clf.predict(x_test)
+    #print(y_pred)
+    if (iter == 0):
             y_true_lables = y_test;
-            #print y_test.shape[0]
+            print y_test.shape[0]
             y_pred_lables = y_pred;
             total_size = y_pred.shape[0];
-        elif (kernel == 'linear'):
-            #print kernel
+    else:
             total_size = total_size + y_pred.shape[0];
-            #print y_true_lables.shape[0]
-            #print y_test.shape[0]
+            print y_true_lables.shape[0]
+            print y_test.shape[0]
             y_true_lables = np.concatenate((y_true_lables, y_test));
             y_pred_lables = np.concatenate((y_pred_lables, y_pred));
-
 
 # Compute confusion matrix
 cnf_matrix = confusion_matrix(y_true_lables, y_pred_lables)
@@ -150,9 +140,9 @@ np.set_printoptions(precision=2)
 print(classification_report(y_true_lables, y_pred_lables, target_names=class_names))
 
 # Plot non-normalized confusion matrix
-plt.figure(facecolor='white')
+plt.figure()
 plot_confusion_matrix(cnf_matrix, classes=class_names,
-                      title='SVM Confusion matrix')
+                      title='Confusion matrix, without normalization')
 # Plot normalized confusion matrix
 plt.figure()
 plot_confusion_matrix(cnf_matrix, classes=class_names, normalize=True,
